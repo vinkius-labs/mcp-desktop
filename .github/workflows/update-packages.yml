@@ -1,0 +1,237 @@
+name: Update Package Managers
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+env:
+  APP_NAME: "Vinkius.Desktop"
+
+jobs:
+  compute-hashes:
+    name: Compute SHA256 hashes
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      hash_dmg_arm64: ${{ steps.hashes.outputs.dmg_arm64 }}
+      hash_dmg_x64: ${{ steps.hashes.outputs.dmg_x64 }}
+      hash_msi: ${{ steps.hashes.outputs.msi }}
+      hash_exe: ${{ steps.hashes.outputs.exe }}
+      hash_appimage: ${{ steps.hashes.outputs.appimage }}
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          mkdir -p assets
+          gh release download "$GITHUB_REF_NAME" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern "*.dmg" \
+            --pattern "*.msi" \
+            --pattern "*setup.exe" \
+            --pattern "*.AppImage" \
+            --dir assets
+
+      - name: Compute SHA256
+        id: hashes
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          cd assets
+
+          echo "dmg_arm64=$(sha256sum ${APP_NAME}_${VERSION}_aarch64.dmg | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "dmg_x64=$(sha256sum ${APP_NAME}_${VERSION}_x64.dmg | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "msi=$(sha256sum ${APP_NAME}_${VERSION}_x64_en-US.msi | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "exe=$(sha256sum ${APP_NAME}_${VERSION}_x64-setup.exe | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+          echo "appimage=$(sha256sum ${APP_NAME}_${VERSION}_amd64.AppImage | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+
+  update-homebrew:
+    name: Update Homebrew tap
+    needs: compute-hashes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout homebrew-tap
+        uses: actions/checkout@v4
+        with:
+          repository: vinkius-labs/homebrew-tap
+          token: ${{ secrets.DIST_PAT }}
+
+      - name: Update Cask
+        env:
+          VERSION: ${{ needs.compute-hashes.outputs.version }}
+          HASH_ARM64: ${{ needs.compute-hashes.outputs.hash_dmg_arm64 }}
+          HASH_X64: ${{ needs.compute-hashes.outputs.hash_dmg_x64 }}
+        run: |
+          cat > Casks/mcp-desktop.rb << 'CASK'
+          cask "mcp-desktop" do
+            version "VERSION_PLACEHOLDER"
+
+            on_intel do
+              url "https://github.com/vinkius-labs/mcp-desktop/releases/download/v#{version}/Vinkius.Desktop_#{version}_x64.dmg"
+              sha256 "HASH_X64_PLACEHOLDER"
+            end
+
+            on_arm do
+              url "https://github.com/vinkius-labs/mcp-desktop/releases/download/v#{version}/Vinkius.Desktop_#{version}_aarch64.dmg"
+              sha256 "HASH_ARM64_PLACEHOLDER"
+            end
+
+            name "MCP Desktop"
+            desc "Discover, install, and manage MCP servers for AI agents"
+            homepage "https://vinkius.com"
+
+            depends_on macos: ">= :catalina"
+
+            app "Vinkius Desktop.app"
+
+            zap trash: [
+              "~/Library/Application Support/com.vinkius.desktop",
+              "~/Library/Caches/com.vinkius.desktop",
+              "~/Library/Preferences/com.vinkius.desktop.plist",
+              "~/Library/Saved Application State/com.vinkius.desktop.savedState",
+            ]
+          end
+          CASK
+
+          sed -i "s/VERSION_PLACEHOLDER/$VERSION/g" Casks/mcp-desktop.rb
+          sed -i "s/HASH_X64_PLACEHOLDER/$HASH_X64/g" Casks/mcp-desktop.rb
+          sed -i "s/HASH_ARM64_PLACEHOLDER/$HASH_ARM64/g" Casks/mcp-desktop.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Casks/mcp-desktop.rb
+          git commit -m "bump: mcp-desktop ${{ needs.compute-hashes.outputs.version }}"
+          git push
+
+  update-scoop:
+    name: Update Scoop bucket
+    needs: compute-hashes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout scoop-bucket
+        uses: actions/checkout@v4
+        with:
+          repository: vinkius-labs/scoop-bucket
+          token: ${{ secrets.DIST_PAT }}
+
+      - name: Update manifest
+        env:
+          VERSION: ${{ needs.compute-hashes.outputs.version }}
+          HASH_EXE: ${{ needs.compute-hashes.outputs.hash_exe }}
+        run: |
+          cat > bucket/mcp-desktop.json << EOF
+          {
+            "version": "$VERSION",
+            "description": "Desktop app to discover, install, and manage MCP servers for AI agents",
+            "homepage": "https://github.com/vinkius-labs/mcp-desktop",
+            "license": "Apache-2.0",
+            "architecture": {
+              "64bit": {
+                "url": "https://github.com/vinkius-labs/mcp-desktop/releases/download/v$VERSION/Vinkius.Desktop_${VERSION}_x64-setup.exe",
+                "hash": "$HASH_EXE"
+              }
+            },
+            "installer": {
+              "args": ["/S"]
+            },
+            "uninstaller": {
+              "file": "\$dir\\\\Uninstall Vinkius Desktop.exe",
+              "args": ["/S"]
+            },
+            "checkver": "github",
+            "autoupdate": {
+              "architecture": {
+                "64bit": {
+                  "url": "https://github.com/vinkius-labs/mcp-desktop/releases/download/v\$version/Vinkius.Desktop_\${version}_x64-setup.exe"
+                }
+              }
+            }
+          }
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add bucket/mcp-desktop.json
+          git commit -m "bump: mcp-desktop ${{ needs.compute-hashes.outputs.version }}"
+          git push
+
+  update-aur:
+    name: Update AUR package
+    needs: compute-hashes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout aur-mcp-desktop
+        uses: actions/checkout@v4
+        with:
+          repository: vinkius-labs/aur-mcp-desktop
+          token: ${{ secrets.DIST_PAT }}
+
+      - name: Update PKGBUILD
+        env:
+          VERSION: ${{ needs.compute-hashes.outputs.version }}
+          HASH_APPIMAGE: ${{ needs.compute-hashes.outputs.hash_appimage }}
+        run: |
+          sed -i "s/^pkgver=.*/pkgver=$VERSION/" PKGBUILD
+          sed -i "s/^pkgrel=.*/pkgrel=1/" PKGBUILD
+          sed -i "s/^sha256sums=.*/sha256sums=('$HASH_APPIMAGE')/" PKGBUILD
+
+          # Update .SRCINFO
+          cat > .SRCINFO << EOF
+          pkgbase = mcp-desktop-bin
+          	pkgdesc = Desktop app to discover, install, and manage 3,400+ MCP servers for AI agents
+          	pkgver = $VERSION
+          	pkgrel = 1
+          	url = https://github.com/vinkius-labs/mcp-desktop
+          	arch = x86_64
+          	license = Apache-2.0
+          	depends = webkit2gtk
+          	depends = gtk3
+          	depends = libappindicator-gtk3
+          	provides = mcp-desktop
+          	conflicts = mcp-desktop
+          	options = !strip
+          	source = mcp-desktop-bin-${VERSION}.AppImage::https://github.com/vinkius-labs/mcp-desktop/releases/download/v${VERSION}/Vinkius.Desktop_${VERSION}_amd64.AppImage
+          	sha256sums = $HASH_APPIMAGE
+
+          pkgname = mcp-desktop-bin
+          EOF
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          git commit -m "bump: mcp-desktop-bin ${{ needs.compute-hashes.outputs.version }}"
+          git push
+
+  update-winget:
+    name: Submit Winget update
+    needs: compute-hashes
+    runs-on: windows-latest
+    steps:
+      - name: Install wingetcreate
+        run: |
+          Invoke-WebRequest -Uri https://aka.ms/wingetcreate/latest -OutFile wingetcreate.exe
+
+      - name: Create and submit manifest
+        env:
+          VERSION: ${{ needs.compute-hashes.outputs.version }}
+          GITHUB_TOKEN: ${{ secrets.DIST_PAT }}
+        run: |
+          $url = "https://github.com/vinkius-labs/mcp-desktop/releases/download/v$env:VERSION/Vinkius.Desktop_$($env:VERSION)_x64_en-US.msi"
+          .\wingetcreate.exe update Vinkius.MCPDesktop `
+            --version $env:VERSION `
+            --urls $url `
+            --submit `
+            --token $env:GITHUB_TOKEN
