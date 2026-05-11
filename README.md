@@ -6,6 +6,9 @@
 ![macOS](https://img.shields.io/badge/macOS-supported-blue.svg)
 ![Linux](https://img.shields.io/badge/Linux-supported-blue.svg)
 
+> **Using Vinkius Desktop?** Come talk to us — [**Join the Discord →**](https://discord.gg/pKEdyxAYD)
+> Config questions, client requests, and what AI tools you're running. The founder is in there.
+
 The first native desktop application that provides unified MCP server management across all AI clients installed on a single machine.
 
 Today, every AI client stores MCP server configuration in its own file, in its own format, at its own path. Vinkius Desktop eliminates this fragmentation entirely.
