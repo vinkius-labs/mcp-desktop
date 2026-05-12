@@ -96,12 +96,12 @@ async function handleCtaClick() {
 
 function getShareUrl(): string {
   if (!listing.value) return ''
-  return `${provider.siteUrl}/en/apps/${listing.value.slug}-mcp`
+  return `${provider.siteUrl}/apps/${listing.value.slug}-mcp`
 }
 
 const askAiUrls = computed(() => {
   if (!listing.value) return { chatgpt: '', claude: '', perplexity: '' }
-  const serverUrl = `${provider.siteUrl}/en/apps/${listing.value.slug}-mcp`
+  const serverUrl = `${provider.siteUrl}/apps/${listing.value.slug}-mcp`
   const prompt = `Tell me about the ${listing.value.title} MCP Server: ${serverUrl}`
   const encoded = encodeURIComponent(prompt)
   return {
@@ -208,7 +208,6 @@ function renderMarkdown(raw: string): string {
               <ListingCtaButton
                 v-else
                 :is-installed="isInstalled"
-                :authenticated="auth.authenticated"
                 @install="handleCtaClick"
               />
             </div>
@@ -365,7 +364,6 @@ function renderMarkdown(raw: string): string {
         <div class="w-full flex items-center justify-end">
           <ListingCtaButton
             :is-installed="isInstalled"
-            :authenticated="auth.authenticated"
             @install="handleCtaClick"
           />
         </div>

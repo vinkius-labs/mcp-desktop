@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import { Cable, Zap, CheckCircle2 } from 'lucide-vue-next'
+import { Zap, CheckCircle2 } from 'lucide-vue-next'
 
 defineProps<{
   isInstalled: boolean
-  authenticated: boolean
 }>()
 
 const emit = defineEmits<{
@@ -25,22 +24,12 @@ const emit = defineEmits<{
   </Button>
 
   <Button
-    v-else-if="authenticated"
-    size="sm"
-    class="gap-2 shrink-0"
-    @click="emit('install')"
-  >
-    <Zap class="w-4 h-4" />
-    Get to Use
-  </Button>
-
-  <Button
     v-else
     size="sm"
     class="gap-2 shrink-0"
     @click="emit('install')"
   >
-    <Cable class="w-4 h-4" />
-    Get MCP Server (Free)
+    <Zap class="w-4 h-4" />
+    Unlock for AI Agents
   </Button>
 </template>

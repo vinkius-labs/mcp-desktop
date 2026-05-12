@@ -118,7 +118,7 @@ function heroGradient(listing: { id?: string; slug?: string }) {
           }}
         </span>
       </div>
-      <p class="text-[13px] text-muted-foreground leading-snug line-clamp-1">
+      <p class="text-sm text-muted-foreground leading-snug line-clamp-1">
         {{ listing.short_description || subtitleFallback }}
       </p>
     </div>

@@ -1,6 +1,6 @@
 [package]
 name = "desktop"
-version = "0.1.0"
+version = "0.1.4"
 description = "Vinkius Desktop — MCP Server Manager"
 authors = ["Vinkius"]
 edition = "2021"

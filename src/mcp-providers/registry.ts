@@ -32,7 +32,7 @@ const providers: readonly McpProvider[] = [
   vinkiusProvider,
 
   // Community-sourced servers (aggregated from open registries)
-  external('community', 'Community', 'https://vinkius.com/en/discover'),
+  external('community', 'Community', 'https://vinkius.com/discover'),
 ]
 
 /** Shorthand factory for external (link-only) providers. */

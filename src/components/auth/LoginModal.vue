@@ -72,7 +72,7 @@ function handleOpenChange(open: boolean) {
 
         <!-- Tagline -->
         <p class="text-sm text-muted-foreground leading-relaxed max-w-[360px]">
-          You orchestrate agents to work. We arm them with 2,500+ hardened, governed MCP servers from day one.
+          MCPs are the music of AI Agents. We built the player and the premium catalog to power them.
         </p>
       </div>
 
@@ -90,7 +90,7 @@ function handleOpenChange(open: boolean) {
             Sign in securely
           </Button>
           <p class="text-center text-[11px] text-muted-foreground/50 uppercase tracking-widest mt-4">
-            No credit card required
+            No credit card · No commitment
           </p>
         </template>
 

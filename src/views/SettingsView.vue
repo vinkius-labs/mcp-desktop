@@ -24,8 +24,8 @@ const themeOptions: { value: ThemeOption; label: string; icon: typeof Sun }[] = 
 const aboutLinks = [
   { label: 'Website', url: 'https://vinkius.com', icon: Globe },
   { label: 'Documentation', url: 'https://docs.vinkius.com/getting-started', icon: BookOpen },
-  { label: 'Terms of Service', url: 'https://vinkius.com/en/legal/terms-and-conditions', icon: FileText },
-  { label: 'Privacy Policy', url: 'https://vinkius.com/en/legal/privacy-policy', icon: Shield },
+  { label: 'Terms of Service', url: 'https://vinkius.com/legal/terms-and-conditions', icon: FileText },
+  { label: 'Privacy Policy', url: 'https://vinkius.com/legal/privacy-policy', icon: Shield },
 ]
 
 function openExternal(url: string) {

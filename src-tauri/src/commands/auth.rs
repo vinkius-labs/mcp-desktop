@@ -8,25 +8,11 @@ use tokio_util::sync::CancellationToken;
 
 const STORE_KEY: &str = "credentials";
 
-/// Resolve the API base URL from environment configuration.
-///
-/// Priority: runtime `VITE_API_BASE_URL` → compile-time `VITE_API_BASE_URL`.
-///
-/// # Panics
-///
-/// Panics if `VITE_API_BASE_URL` is not set at runtime or compile time.
-/// This should never happen when `.env` is properly loaded via `dotenvy`.
-fn api_base() -> String {
-    std::env::var("VITE_API_BASE_URL")
-        .or_else(|_| {
-            option_env!("VITE_API_BASE_URL")
-                .map(String::from)
-                .ok_or(std::env::VarError::NotPresent)
-        })
-        .expect(
-            "VITE_API_BASE_URL is not configured. \
-             Ensure .env exists in the project root.",
-        )
+use crate::config::constants::API_BASE_URL;
+
+/// Returns the API base URL from the centralized configuration.
+fn api_base() -> &'static str {
+    API_BASE_URL
 }
 
 // ── Types ────────────────────────────────────────────────────────────

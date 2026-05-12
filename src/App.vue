@@ -4,15 +4,18 @@ import { useRoute, useRouter } from 'vue-router'
 import TitleBar from '@/components/layout/TitleBar.vue'
 import Sidebar from '@/components/layout/Sidebar.vue'
 import LoginModal from '@/components/auth/LoginModal.vue'
+import DeepLinkInstallModal from '@/components/shared/DeepLinkInstallModal.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useClientsStore } from '@/stores/clients'
 import { useSettings } from '@/composables/useSettings'
+import { useDeepLink } from '@/composables/useDeepLink'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const clientsStore = useClientsStore()
 const { init: initSettings } = useSettings()
+const { setupDeepLinkListeners } = useDeepLink()
 
 /** Routes that should NOT display the app shell (sidebar, statusbar) */
 const shelllessRoutes = ['welcome']
@@ -20,6 +23,7 @@ const shelllessRoutes = ['welcome']
 onMounted(async () => {
   auth.setupListeners()
   clientsStore.setupListeners()
+  setupDeepLinkListeners()
 
   // Load settings from tauri-plugin-store and apply theme + tray + autostart
   await initSettings()
@@ -64,5 +68,6 @@ onMounted(async () => {
 
     <!-- Global Application Modals -->
     <LoginModal />
+    <DeepLinkInstallModal />
   </div>
 </template>
